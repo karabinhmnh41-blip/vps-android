@@ -14,13 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    timeout-minutes: 320
+    timeout-minutes: 350
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Enable KVM
         run: |
@@ -29,11 +27,12 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           ls -la /dev/kvm
 
-      - name: Pull Android emulator image
+      - name: Pull Android emulator image (max config)
         run: |
+          # budtmo/docker-android: x86_64 AOSP 14 + noVNC + adb, KVM accelerated
           docker pull budtmo/docker-android:emulator_14.0
 
-      - name: Start Android (Pixel 6, API 34, 3GB RAM, 2 cores)
+      - name: Start Android (Pixel 6, API 34, 4GB RAM, 4 cores)
         run: |
           mkdir -p "$GITHUB_WORKSPACE/android-data"
           docker run -d --name android \
@@ -43,13 +42,13 @@ jobs:
             -p 5554:5554 -p 5555:5555 \
             -e EMULATOR_DEVICE="Pixel 6" \
             -e WEB_VNC=true \
-            -e DEVICE_FRAME=false \
             -e EMULATOR_NO_SKIN=true \
             -e EMULATOR_HEADLESS=false \
-            -e EMULATOR_ARGS="-memory 3072 -cores 2 -gpu off -no-snapshot-save -no-boot-anim -camera-back none -camera-front none" \
+            -e EMULATOR_ARGS="-memory 4096 -cores 4 -gpu swiftshader_indirect -no-snapshot-save -no-boot-anim -camera-back none -camera-front none" \
             -e WEB_LOG=true \
             -v "$GITHUB_WORKSPACE/android-data:/data" \
             budtmo/docker-android:emulator_14.0
+          echo "Container started, waiting for emulator boot..."
 
       - name: Wait for Android boot
         run: |
@@ -62,32 +61,39 @@ jobs:
             echo "⏳ Waiting for boot... ($i/60)"
             sleep 10
           done
+          docker exec android adb shell getprop ro.build.version.release || true
+          docker exec android adb devices || true
 
       - name: Install Cloudflared
         run: |
           curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared.deb
+          cloudflared --version
 
       - name: Start Cloudflared tunnel
         run: |
-          nohup cloudflared tunnel --url http://localhost:6080 --no-autoupdate --protocol http2 --logfile cloudflared.log &
+          nohup cloudflared tunnel --url http://localhost:6080 --no-autoupdate --edge-ip-version auto --protocol http2 --logfile cloudflared.log --loglevel info &
           echo $! > cloudflared.pid
-          sleep 15
+          sleep 20
+          cat cloudflared.log || true
 
       - name: Get tunnel URL + commit android-link.txt
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           URL=""
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             if grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' cloudflared.log | head -1 > /tmp/url.txt && [ -s /tmp/url.txt ]; then
               URL=$(cat /tmp/url.txt)
               break
             fi
+            echo "⏳ Waiting for Cloudflared URL... ($i/60)"
             sleep 5
           done
 
-          if [ -n "$URL" ]; then
+          if [ -z "$URL" ]; then
+            echo "TUNNEL_FAILED: no trycloudflare URL after 5 minutes" > android-link.txt
+          else
             FULL="$URL/vnc.html?autoconnect=true&resize=scale"
             {
               echo '======================================================='
@@ -95,6 +101,10 @@ jobs:
               echo '======================================================='
               echo "URL       : $FULL"
               echo "Device    : Pixel 6 (Android 14, x86_64)"
+              echo "Config    : 4GB RAM / 4 cores / KVM / SwiftShader"
+              echo "ADB       : docker exec android adb ..."
+              echo "Host      : trycloudflare"
+              echo "Created   : $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
               echo '======================================================='
             } > android-link.txt
             echo "✅ Android URL: $FULL"
@@ -103,10 +113,13 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add android-link.txt
-          git commit -m "Update Cloud Android link" || true
-          git push origin main --force
+          git commit -m "Update Cloud Android link" --allow-empty
+          git push origin main --force-with-lease
 
-      - name: Keep session alive (~4.5h)
+      - name: Keep session alive (~5h45m)
         run: |
-          echo "Android đang hoạt động..."
-          sleep 16200
+          echo "Keeping Android alive until cron restart..."
+          sleep 20700
+          kill $(cat cloudflared.pid) 2>/dev/null || true
+          docker stop android 2>/dev/null || true
+          echo "Session ended."
