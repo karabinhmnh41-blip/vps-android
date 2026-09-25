@@ -1,10 +1,10 @@
 =======================================================
 CLOUD ANDROID - DucThang x TrueHieu Edition
 =======================================================
-URL       : https://nova-anymore-fish-counters.trycloudflare.com/vnc.html?autoconnect=true&resize=scale
+URL       : https://tracks-minor-after-streaming.trycloudflare.com/vnc.html?autoconnect=true&resize=scale
 Device    : Pixel 6 (Android 14, x86_64)
 Config    : 4GB RAM / 4 cores / KVM / SwiftShader
 ADB       : docker exec android adb ...
 Host      : trycloudflare
-Created   : 2026-09-25 03:44:41 UTC
+Created   : 2026-09-25 10:11:16 UTC
 =======================================================
