@@ -1,10 +1,10 @@
 =======================================================
 CLOUD ANDROID - DucThang x TrueHieu Edition
 =======================================================
-URL       : https://salad-configuration-falling-olympic.trycloudflare.com/vnc.html?autoconnect=true&resize=scale
+URL       : https://catalog-shoes-liked-undo.trycloudflare.com/vnc.html?autoconnect=true&resize=scale
 Device    : Pixel 6 (Android 14, x86_64)
 Config    : 4GB RAM / 4 cores / KVM / SwiftShader
 ADB       : docker exec android adb ...
 Host      : trycloudflare
-Created   : 2026-09-29 23:38:42 UTC
+Created   : 2026-09-30 04:16:36 UTC
 =======================================================
