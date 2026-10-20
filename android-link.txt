@@ -1,10 +1,10 @@
 =======================================================
 CLOUD ANDROID - DucThang x TrueHieu Edition
 =======================================================
-URL       : https://today-solutions-epa-mines.trycloudflare.com/vnc.html?autoconnect=true&resize=scale
+URL       : https://ray-ladies-earliest-calls.trycloudflare.com/vnc.html?autoconnect=true&resize=scale
 Device    : Pixel 6 (Android 14, x86_64)
 Config    : 4GB RAM / 4 cores / KVM / SwiftShader
 ADB       : docker exec android adb ...
 Host      : trycloudflare
-Created   : 2026-10-19 20:34:11 UTC
+Created   : 2026-10-20 03:41:30 UTC
 =======================================================
